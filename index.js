@@ -62,19 +62,16 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
    */
   function doubtSolver(agent) {
     const uuidv1 = require('uuid/v1')
+    var subject = agent.parameters["subjects"];
+    var classValue = agent.parameters["hindiClass"];
+    var doubtValue = agent.parameters["doubtValue"];
     console.log("entered doubt solver");
-    if (agent.locale == 'en-us'){
-      var subject = agent.parameters["subjects"];
-      var classValue = agent.parameters["class"];
-      var doubtValue = agent.parameters["doubtValue"];
+    if (agent.locale == 'en'){
       console.log("entered english");
       var text = 'Sure, your ticket number issued is ' + uuidv1() + '. Your doubt \' ' + doubtValue + '\' will be clarified. Solution will be sent in your registered mail id.'
       agent.add(text);
     }
     else if (agent.locale == 'hi'){
-      var subject = agent.parameters["subjects"];
-      var classValue = agent.parameters["hindiClass"];
-      var doubtValue = agent.parameters["doubtValue"];
       console.log("entered hindi");
       var hindiText = 'धन्यवाद, आपका टिकट नंबर '+ uuidv1() +' है! आपके डाउट का समाधान आपके दर्ज कराये मेल पे भेज दिया जायेगा।'
       agent.add(hindiText);
