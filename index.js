@@ -66,14 +66,14 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
     var classValue = agent.parameters["hindiClass"];
     var doubtValue = agent.parameters["doubtValue"];
     console.log("entered doubt solver");
-    if (agent.locale == 'en'){
+    if (agent.locale == 'en') {
       console.log("entered english");
       var text = 'Sure, your ticket number issued is ' + uuidv1() + '. Your doubt \' ' + doubtValue + '\' will be clarified. Solution will be sent in your registered mail id.'
       agent.add(text);
     }
-    else if (agent.locale == 'hi'){
+    else if (agent.locale == 'hi') {
       console.log("entered hindi");
-      var hindiText = 'धन्यवाद, आपका टिकट नंबर '+ uuidv1() +' है! आपके डाउट का समाधान आपके दर्ज कराये मेल पे भेज दिया जायेगा।'
+      var hindiText = 'धन्यवाद, आपका टिकट नंबर ' + uuidv1() + ' है! आपके डाउट का समाधान आपके दर्ज कराये मेल पे भेज दिया जायेगा।'
       agent.add(hindiText);
     }
   }
@@ -86,10 +86,10 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
     var subject = agent.parameters["subjects"];
     var classValue = agent.parameters["class"];
     var chapterName = agent.parameters["chapterName"];
-    await notesQuery(subject, classValue, chapterName).then( output=> {
-      console.log("output og notes:",output)
+    await notesQuery(subject, classValue, chapterName).then(output => {
+      console.log("output of notes:", output)
       var link = output[0].Link
-      var text = 'Sure, here is the link of notes in pdf version. '+link
+      var text = 'Sure, here is the link of notes in pdf version. ' + link
       console.log("text: ", text)
       agent.add(text)
     })
@@ -100,19 +100,82 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
    * @param {dialogflow agent} agent 
    */
   async function assesment(agent) {
+    var text = 'Sure, There will be total 5 questions. Please type START when you are ready. '
+    agent.add(text)
+  }
+
+  /**
+ * Intent handler for taking quiz and printing first question
+ * @param {dialogflow agent} agent 
+ */
+  async function assesmentFirstQuestion(agent) {
     var subject = agent.parameters["subjects"];
     var classValue = agent.parameters["class"];
     var chapterName = agent.parameters["chapterName"];
-    await questionsQuery(subject, classValue, chapterName).then( output=> {
-      console.log("output of question bank:",output)
-      for (let i = 0; i < output.length; i++){
-
-      }
-      // var link = output[0].Link
-      var text = 'Sure, There will be total 5 questions. Please type START when you are ready. '
-      // console.log("text: ", text)
+    await questionsQuery(subject, classValue, chapterName).then(output => {
+      console.log("output of question bank:", output)
+      agent.context.set({
+        'name': 'questionsSet',
+        'lifespan': 10,
+        'parameters': { 'questionBank': output }
+      });
+      var text = 'question is: ' + output[0].question + '. option 1 is: ' + output[0].option1 + '. option 2 is: ' + output[0].option2 + '. option 3 is: ' + output[0].option3
+      console.log("assesmentFirstQuestion text: ", text)
       agent.add(text)
     })
+  }
+
+
+  /**
+ * Intent handler for taking quiz and printing first question
+ * @param {dialogflow agent} agent 
+ */
+  async function assessmentSecondQuestion(agent) {
+    var questionBank = agent.parameters["questionBank"];
+    var optionNumber = agent.parameters["optionNumber"];
+    var paramScore = agent.parameters["score"];
+    var score = 0 + Number(paramScore)
+    console.log('questionBank: ', questionBank)
+    console.log('optionNumber: ', optionNumber)
+    if (optionNumber ===  questionBank[0].answer){
+      console.log("inside correct")
+      score = score + 1
+      var answerText = 'Congrats! answer is correct. ' 
+      questionBank.shift()
+      agent.context.set({
+        'name': 'questionsSet',
+        'lifespan': 10,
+        'parameters': { 'questionBank': questionBank, 'score':score }
+      });
+      if (questionBank.length === 0){
+        var text = answerText + " Your quiz ended. Total score is "+ score
+        agent.add(text)
+      }
+      else{
+        console.log("questionBank: ", questionBank)
+        var text = answerText + 'Next question is: ' + questionBank[0].question + '. option 1 is: ' + questionBank[0].option1 + '. option 2 is: ' + questionBank[0].option2 + '. option 3 is: ' + questionBank[0].option3 + '. option 4 is: ' + questionBank[0].option4
+        agent.add(text)
+      }
+    }
+    else if (optionNumber !=  questionBank[0].answer){
+      console.log("inside wrong")
+      var answerText = 'Sorry, correct answer is option ' + questionBank[0].answer
+      questionBank.shift()
+      agent.context.set({
+        'name': 'questionsSet',
+        'lifespan': 10,
+        'parameters': { 'questionBank': questionBank, 'score':score }
+      });
+      if (questionBank.length === 0){
+        var text = answerText + " Your quiz ended. Total score is "+ score
+        agent.add(text)
+      }
+      else{
+        console.log("questionBank: ", questionBank)
+        var text = answerText + 'Next question is: ' + questionBank[0].question + '. option 1 is: ' + questionBank[0].option1 + '. option 2 is: ' + questionBank[0].option2 + '. option 3 is: ' + questionBank[0].option3 + '. option 4 is: ' + questionBank[0].option4
+        agent.add(text)
+      }
+    }
   }
 
   /**
@@ -139,6 +202,8 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
   intentMap.set('Default Fallback Intent', fallback);
   intentMap.set('Notes', noteRetriever);
   intentMap.set('Assessment', assesment);
+  intentMap.set('AssessmentFirstQuestion', assesmentFirstQuestion);
+  intentMap.set('AssessmentSecondQuestion', assessmentSecondQuestion);
   intentMap.set('doubtClarification', doubtSolver);
   intentMap.set('doubtClarificationText', doubtSolver);
   agent.handleRequest(intentMap);
